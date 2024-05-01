@@ -1,6 +1,6 @@
 const knex = require("knex")(require("./knexfile"));
 
-exports.up = function(knex) {
+exports.up = function (knex) {
   return knex.schema.createTable("entries", (table) => {
     table.increments("id").primary();
     table.date("date").notNullable();
@@ -11,6 +11,6 @@ exports.up = function(knex) {
   });
 };
 
-exports.down = function(knex) {
+exports.down = function (knex) {
   return knex.schema.dropTable("entries"); // do i delete the down part since I'm not deleting?
 };
