@@ -1,6 +1,8 @@
+require("dotenv").config();
 const express = require("express");
 const knex = require("knex");
 const dbConfig = require("./knexfile");
+const cors = require("cors");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -8,9 +10,10 @@ const PORT = process.env.PORT || 5000;
 const db = knex(dbConfig);
 
 app.use(express.json());
+app.use(cors());
 
 app.post("/api/date", (req, res) => {
-  const { date, mood, symptoms, activities, notes } = req.body;
+  const { date, mood, symptoms, activities, comment } = req.body;
 
   db("entries")
     .insert({
@@ -18,7 +21,7 @@ app.post("/api/date", (req, res) => {
       mood,
       symptoms: JSON.stringify(symptoms),
       activities: JSON.stringify(activities),
-      notes,
+      notes: comment,
     })
     .then(() => {
       res.json({ message: "Form submitted successfully" });
@@ -32,8 +35,24 @@ app.post("/api/date", (req, res) => {
 });
 
 app.get("/api/date", (req, res) => {
+  const { startDate, endDate } = req.query;
+
+  if (!startDate || !endDate) {
+    return res
+      .status(400)
+      .json({ error: "Start date and end date are required" });
+  }
+
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return res.status(400).json({ error: "Invalid date format" });
+  }
+
   db.select("*")
     .from("entries")
+    .whereBetween("date", [start, end])
     .then((entries) => {
       res.json(entries);
     })
@@ -48,3 +67,5 @@ app.get("/api/date", (req, res) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+//GET /api/date?startDate=2024-04-01&endDate=2024-04-07
