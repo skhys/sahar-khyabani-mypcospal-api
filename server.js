@@ -20,7 +20,7 @@ app.post("/api/date", (req, res) => {
       date,
       mood,
       symptoms: JSON.stringify(symptoms),
-      activities: JSON.stringify(activities),
+      activities: JSON.stringify(activities) || "Didn't Exercise",
       notes: comment,
     })
     .then(() => {
@@ -38,34 +38,40 @@ app.get("/api/date", (req, res) => {
   const { startDate, endDate } = req.query;
 
   if (!startDate || !endDate) {
-    return res
-      .status(400)
-      .json({ error: "Start date and end date are required" });
+    db.select("*")
+      .from("entries")
+      .then((entries) => {
+        res.json(entries);
+      })
+      .catch((err) => {
+        console.error("Error retrieving form data:", err);
+        res
+          .status(500)
+          .json({ error: "An error occurred while retrieving form data" });
+      });
+  } else {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({ error: "Invalid date format" });
+    }
+
+    db.select("*")
+      .from("entries")
+      .whereBetween("date", [start, end])
+      .then((entries) => {
+        res.json(entries);
+      })
+      .catch((err) => {
+        console.error("Error retrieving form data:", err);
+        res
+          .status(500)
+          .json({ error: "An error occurred while retrieving form data" });
+      });
   }
-
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-
-  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-    return res.status(400).json({ error: "Invalid date format" });
-  }
-
-  db.select("*")
-    .from("entries")
-    .whereBetween("date", [start, end])
-    .then((entries) => {
-      res.json(entries);
-    })
-    .catch((err) => {
-      console.error("Error retrieving form data:", err);
-      res
-        .status(500)
-        .json({ error: "An error occurred while retrieving form data" });
-    });
 });
 
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
-//GET /api/date?startDate=2024-04-01&endDate=2024-04-07
